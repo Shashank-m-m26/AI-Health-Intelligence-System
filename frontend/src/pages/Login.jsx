@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { Heart, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { AlertCircle, Eye, EyeOff, Sparkles, ArrowRight } from 'lucide-react'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -22,65 +22,100 @@ export default function Login() {
         window.location.href = '/dashboard'
       }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Login failed')
+      setError(err.response?.data?.detail || 'Invalid email or password.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-stone-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        <div className="flex items-center gap-2 justify-center mb-8">
-          <Heart className="text-brand-500" size={28} />
-          <span className="text-2xl font-semibold text-white">HealthIQ</span>
+    <div className="min-h-screen bg-[#0b0d14] flex flex-col items-center justify-center p-6 relative overflow-hidden select-none">
+      {/* Subtle background glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-brand-500/10 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="w-full max-w-md relative z-10 space-y-8">
+        {/* Hero Branding */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white font-bold text-xl shadow-glow-brand">
+              H
+            </div>
+            <span className="text-2xl font-bold tracking-tight text-white">HealthIQ</span>
+          </div>
+
+          <div className="space-y-1">
+            <h1 className="text-xl md:text-2xl font-serif italic text-stone-200">
+              “Your entire health history. One intelligent story.”
+            </h1>
+            <p className="text-xs text-stone-400 font-mono">
+              Longitudinal Personal Health Intelligence System
+            </p>
+          </div>
         </div>
-        <div className="card">
-          <h1 className="text-lg font-semibold mb-5">Sign in to your account</h1>
+
+        {/* Login Card */}
+        <div className="card p-7 bg-[#121520]/90 border-white/[0.1] shadow-2xl backdrop-blur-md space-y-6">
+          <div className="border-b border-white/[0.07] pb-4">
+            <h2 className="text-base font-bold text-white tracking-tight">Access Your Health Record</h2>
+            <p className="text-xs text-stone-400 mt-0.5">Sign in to your intelligent health portal</p>
+          </div>
+
           {error && (
-            <div className="flex items-center gap-2 text-red-400 bg-red-400/10 rounded-lg px-3 py-2 text-sm mb-4">
-              <AlertCircle size={15} /> {error}
+            <div className="p-3.5 rounded-lg text-xs bg-rose-500/10 text-rose-300 border border-rose-500/20 flex items-center gap-2.5">
+              <AlertCircle size={16} className="shrink-0" />
+              <span>{error}</span>
             </div>
           )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="label">Email</label>
+              <label className="label">Email Address</label>
               <input
-                className="input"
+                required
                 type="email"
+                className="input"
+                placeholder="name@domain.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
               />
             </div>
+
             <div>
               <label className="label">Password</label>
               <div className="relative">
                 <input
-                  className="input pr-10"
+                  required
                   type={showPassword ? 'text' : 'password'}
+                  className="input pr-10 font-mono text-xs"
+                  placeholder="••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(s => !s)}
-                  className="absolute inset-y-0 right-3 flex items-center text-stone-400 hover:text-white transition-colors"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-white"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
-            <button type="submit" className="btn-primary w-full" disabled={loading}>
-              {loading ? 'Signing in…' : 'Sign in'}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full py-3 text-xs tracking-wider uppercase font-mono mt-2"
+            >
+              {loading ? 'Authenticating...' : 'Sign In'}
             </button>
           </form>
-          <p className="text-sm text-stone-400 text-center mt-4">
-            No account? <Link to="/register" className="text-brand-400 hover:underline">Register</Link>
-          </p>
+
+          <div className="pt-2 text-center text-xs text-stone-400 border-t border-white/[0.06]">
+            Don't have a record yet?{' '}
+            <Link to="/register" className="text-brand-400 font-semibold hover:underline">
+              Register HealthIQ Account
+            </Link>
+          </div>
         </div>
       </div>
     </div>

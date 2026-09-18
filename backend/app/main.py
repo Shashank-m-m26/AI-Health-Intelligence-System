@@ -11,6 +11,7 @@ from app.routers import (
     summary,
     nutrition,
     wearable,
+    xray,
 )
 Base.metadata.create_all(bind=engine)
 
@@ -33,6 +34,7 @@ app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(summary.router, prefix="/summary", tags=["summary"])
 app.include_router(nutrition.router, prefix="/nutrition", tags=["nutrition"])
 app.include_router(wearable.router, prefix="/wearable", tags=["wearable"])
+app.include_router(xray.router, prefix="/xray", tags=["xray"])
 
 @app.get("/")
 def root():

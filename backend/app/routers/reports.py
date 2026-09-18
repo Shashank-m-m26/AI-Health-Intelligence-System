@@ -83,8 +83,7 @@ async def upload_report(
                 continue
         db.commit()
     except Exception as e:
-        # Don't fail if AI extraction fails
-        pass
+        print(f"❌ Biomarker extraction failed: {type(e).__name__}: {e}")
 
     return {"report_id": report.id, "filename": file.filename, "biomarkers_extracted": len(biomarkers_data) if 'biomarkers_data' in locals() else 0}
 
