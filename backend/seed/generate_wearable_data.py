@@ -301,10 +301,14 @@ def seed_database():
 
     try:
 
-        # Get the first registered user.
-        user = db.query(User).order_by(User.id.asc()).first()
+        # Get all registered users.
+        users = (
+            db.query(User)
+            .order_by(User.id.asc())
+            .all()
+        )
 
-        if not user:
+        if not users:
             print(
                 "ERROR: No users found in the database."
             )
@@ -315,61 +319,89 @@ def seed_database():
             return
 
         print(
-            f"Using user: {user.email} "
-            f"(ID: {user.id})"
+            f"Found {len(users)} registered user(s)."
         )
 
-        # Remove existing wearable records for this user.
-        existing_count = (
-            db.query(WearableDaily)
-            .filter(
-                WearableDaily.user_id == user.id
-            )
-            .count()
-        )
+        total_records = 0
 
-        if existing_count > 0:
+        for user in users:
 
+            print()
             print(
-                f"Removing {existing_count} "
-                "existing wearable records..."
+                f"Processing user: {user.email} "
+                f"(ID: {user.id})"
             )
 
-            (
+            # Remove existing wearable records
+            # ONLY for this user.
+            existing_count = (
                 db.query(WearableDaily)
                 .filter(
                     WearableDaily.user_id == user.id
                 )
-                .delete(
-                    synchronize_session=False
-                )
+                .count()
             )
 
+            if existing_count > 0:
+
+                print(
+                    f"Removing {existing_count} "
+                    "existing wearable records..."
+                )
+
+                (
+                    db.query(WearableDaily)
+                    .filter(
+                        WearableDaily.user_id == user.id
+                    )
+                    .delete(
+                        synchronize_session=False
+                    )
+                )
+
+                db.commit()
+
+            # Generate fresh synthetic data.
+            rows = generate_wearable_data()
+
+            # Assign every generated record to this user.
+            wearable_records = [
+                WearableDaily(
+                    user_id=user.id,
+                    **row
+                )
+                for row in rows
+            ]
+
+            db.add_all(wearable_records)
             db.commit()
 
-        # Generate records.
-        rows = generate_wearable_data()
+            total_records += len(wearable_records)
 
-        # Convert dictionaries into SQLAlchemy objects.
-        wearable_records = [
-            WearableDaily(
-                user_id=user.id,
-                **row
+            print(
+                f"Created {len(wearable_records)} "
+                f"wearable records for {user.email}"
             )
-            for row in rows
-        ]
-
-        db.add_all(wearable_records)
-        db.commit()
 
         print()
         print("=" * 50)
         print("WEARABLE DATA SEEDED SUCCESSFULLY")
         print("=" * 50)
-        print(f"User ID:       {user.id}")
-        print(f"Records:       {len(wearable_records)}")
-        print(f"Start date:    {START_DATE}")
-        print(f"End date:      {END_DATE}")
+        print(
+            f"Users:         {len(users)}"
+        )
+        print(
+            f"Records/user:  {(END_DATE - START_DATE).days + 1}"
+        )
+        print(
+            f"Total records: {total_records}"
+        )
+        print(
+            f"Start date:    {START_DATE}"
+        )
+        print(
+            f"End date:      {END_DATE}"
+        )
         print("=" * 50)
 
     except Exception as e:
@@ -386,7 +418,6 @@ def seed_database():
     finally:
 
         db.close()
-
 
 if __name__ == "__main__":
     seed_database()

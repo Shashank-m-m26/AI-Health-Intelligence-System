@@ -1,159 +1,251 @@
 import { useState, useEffect } from 'react'
 import api from '../utils/api'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { Plus, Trash2 } from 'lucide-react'
+import { Activity, Plus, Trash2, Calendar, Clock, Filter, LineChart as ChartIcon } from 'lucide-react'
 import { format } from 'date-fns'
+import EmptyState from '../components/EmptyState'
 
 const LOG_TYPES = [
-  { value: 'blood_pressure', label: 'Blood Pressure', unit: 'mmHg', hasSecond: true, placeholder: 'Systolic', placeholder2: 'Diastolic' },
   { value: 'glucose', label: 'Fasting Glucose', unit: 'mg/dL' },
+  { value: 'blood_pressure', label: 'Blood Pressure', unit: 'mmHg', hasSecond: true, placeholder: 'Systolic', placeholder2: 'Diastolic' },
   { value: 'weight', label: 'Weight', unit: 'kg' },
-  { value: 'pulse', label: 'Pulse', unit: 'bpm' },
+  { value: 'pulse', label: 'Pulse Rate', unit: 'bpm' },
   { value: 'spo2', label: 'Oxygen Saturation', unit: '%' },
   { value: 'temperature', label: 'Body Temp', unit: '°F' },
   { value: 'sleep', label: 'Sleep Duration', unit: 'hrs' },
-  { value: 'steps', label: 'Step Count', unit: 'steps' },
+  { value: 'steps', label: 'Daily Steps', unit: 'steps' },
   { value: 'water', label: 'Water Intake', unit: 'L' },
-  { value: 'calories', label: 'Calories', unit: 'kcal' },
 ]
 
 export default function LogsPage() {
-  const [form, setForm] = useState({ log_type: 'glucose', value: '', value2: '' })
   const [logs, setLogs] = useState([])
-  const [activeType, setActiveType] = useState('glucose')
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [activeFilter, setActiveFilter] = useState('all')
 
-  useEffect(() => { loadLogs() }, [])
+  const [form, setForm] = useState({
+    log_type: 'glucose',
+    value: '',
+    value2: '',
+  })
+
+  useEffect(() => {
+    loadLogs()
+  }, [])
 
   const loadLogs = async () => {
+    setLoading(true)
     try {
       const res = await api.get('/logs/')
-      setLogs(res.data)
-    } catch (e) {}
+      setLogs(res.data || [])
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleAdd = async () => {
+  const handleAddLog = async (e) => {
+    e.preventDefault()
     if (!form.value) return
+
     setSaving(true)
+    const selectedType = LOG_TYPES.find(t => t.value === form.log_type)
+
     try {
       await api.post('/logs/', {
         log_type: form.log_type,
         value: parseFloat(form.value),
         value2: form.value2 ? parseFloat(form.value2) : null,
-        unit: LOG_TYPES.find(t => t.value === form.log_type)?.unit,
+        unit: selectedType?.unit,
       })
+
       setForm(f => ({ ...f, value: '', value2: '' }))
       loadLogs()
-    } catch (e) {}
-    setSaving(false)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handleDelete = async (id) => {
+  const handleDeleteLog = async (id) => {
     try {
       await api.delete(`/logs/${id}`)
       loadLogs()
-    } catch (e) {}
+    } catch (e) {
+      console.error(e)
+    }
   }
 
-  const typeLogs = logs.filter(l => l.log_type === activeType).sort((a, b) => new Date(a.logged_at) - new Date(b.logged_at))
-  const chartData = typeLogs.map(l => ({ date: format(new Date(l.logged_at), 'MMM d'), value: l.value, value2: l.value2 }))
-  const selectedType = LOG_TYPES.find(t => t.value === form.log_type)
+  const filteredLogs = (activeFilter === 'all'
+    ? logs
+    : logs.filter(l => l.log_type === activeFilter)
+  ).sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at))
+
+  const selectedTypeObj = LOG_TYPES.find(t => t.value === form.log_type)
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-white">Health Logs</h1>
-        <p className="text-sm text-stone-400 mt-0.5">Manually track your vitals over time</p>
+    <div className="p-6 md:p-8 space-y-8 max-w-5xl mx-auto">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.07] pb-5">
+        <div>
+          <div className="flex items-center gap-2 text-brand-400 text-xs font-mono font-medium tracking-wider uppercase mb-1">
+            <Activity size={14} /> Personal Health Journal
+          </div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Health Logs</h1>
+          <p className="text-sm text-stone-400 mt-1">
+            Chronological personal health journal of self-measured vitals and daily observations.
+          </p>
+        </div>
       </div>
 
-      {/* Add log form */}
-      <div className="card">
-        <h2 className="text-sm font-semibold text-white mb-4">Log a Reading</h2>
-        <div className="flex flex-wrap gap-3">
-          <div className="flex-1 min-w-32">
-            <label className="label">Type</label>
+      {/* Add Log Form */}
+      <div className="card p-5 bg-[#121520] border-white/[0.08]">
+        <h2 className="text-sm font-bold text-white tracking-tight mb-4">Record New Journal Entry</h2>
+
+        <form onSubmit={handleAddLog} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+          <div className="sm:col-span-4">
+            <label className="label">Measurement Type</label>
             <select
-              className="input"
+              className="input text-xs"
               value={form.log_type}
-              onChange={e => setForm(f => ({ ...f, log_type: e.target.value }))}
+              onChange={e => setForm({ ...form, log_type: e.target.value })}
             >
-              {LOG_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              {LOG_TYPES.map(t => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
             </select>
           </div>
-          <div className="flex-1 min-w-24">
-            <label className="label">{selectedType?.placeholder || 'Value'} ({selectedType?.unit})</label>
-            <input className="input" type="number" value={form.value} onChange={e => setForm(f => ({ ...f, value: e.target.value }))} placeholder="0" />
+
+          <div className="sm:col-span-3">
+            <label className="label">
+              {selectedTypeObj?.placeholder || 'Value'} ({selectedTypeObj?.unit})
+            </label>
+            <input
+              required
+              type="number"
+              step="any"
+              className="input font-mono text-xs"
+              placeholder="0.0"
+              value={form.value}
+              onChange={e => setForm({ ...form, value: e.target.value })}
+            />
           </div>
-          {selectedType?.hasSecond && (
-            <div className="flex-1 min-w-24">
-              <label className="label">{selectedType?.placeholder2}</label>
-              <input className="input" type="number" value={form.value2} onChange={e => setForm(f => ({ ...f, value2: e.target.value }))} placeholder="0" />
+
+          {selectedTypeObj?.hasSecond && (
+            <div className="sm:col-span-3">
+              <label className="label">{selectedTypeObj?.placeholder2}</label>
+              <input
+                type="number"
+                step="any"
+                className="input font-mono text-xs"
+                placeholder="0.0"
+                value={form.value2}
+                onChange={e => setForm({ ...form, value2: e.target.value })}
+              />
             </div>
           )}
-          <div className="flex items-end">
-            <button onClick={handleAdd} disabled={saving} className="btn-primary flex items-center gap-2">
-              <Plus size={15} /> Add
+
+          <div className={`${selectedTypeObj?.hasSecond ? 'sm:col-span-2' : 'sm:col-span-5'} flex justify-end`}>
+            <button
+              type="submit"
+              disabled={saving || !form.value}
+              className="btn-primary text-xs w-full py-2.5"
+            >
+              <Plus size={14} /> Add Entry
             </button>
           </div>
-        </div>
+        </form>
       </div>
 
-      {/* Type tabs */}
-      <div className="flex gap-2">
-        {LOG_TYPES.map(t => (
-          <button
-            key={t.value}
-            onClick={() => setActiveType(t.value)}
-            className={`text-xs px-3 py-1.5 rounded-full transition-colors ${
-              activeType === t.value ? 'bg-brand-500 text-white' : 'text-stone-400 border border-stone-700 hover:text-white'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+        <button
+          onClick={() => setActiveFilter('all')}
+          className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all shrink-0 ${
+            activeFilter === 'all'
+              ? 'bg-brand-500 text-white shadow-sm'
+              : 'bg-white/[0.04] text-stone-400 border border-white/[0.08] hover:text-white'
+          }`}
+        >
+          All Entries ({logs.length})
+        </button>
+
+        {LOG_TYPES.map(t => {
+          const count = logs.filter(l => l.log_type === t.value).length
+          if (count === 0) return null
+          return (
+            <button
+              key={t.value}
+              onClick={() => setActiveFilter(t.value)}
+              className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all shrink-0 ${
+                activeFilter === t.value
+                  ? 'bg-brand-500 text-white shadow-sm'
+                  : 'bg-white/[0.04] text-stone-400 border border-white/[0.08] hover:text-white'
+              }`}
+            >
+              {t.label} ({count})
+            </button>
+          )
+        })}
       </div>
 
-      {/* Chart */}
-      {chartData.length >= 2 && (
-        <div className="card">
-          <h2 className="text-sm font-semibold text-white mb-4">{LOG_TYPES.find(t => t.value === activeType)?.label} Trend</h2>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-              <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} />
-              <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }} />
-              <Line dataKey="value" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 3, fill: '#0ea5e9' }} name="Value" />
-              {activeType === 'blood_pressure' && <Line dataKey="value2" stroke="#a78bfa" strokeWidth={2} dot={{ r: 3, fill: '#a78bfa' }} name="Diastolic" />}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+      {/* Journal Entries Stream */}
+      {filteredLogs.length === 0 ? (
+        <EmptyState
+          icon={Activity}
+          title="No log entries recorded yet"
+          description="Log fasting glucose, blood pressure, weight, or other vital metrics above."
+        />
+      ) : (
+        <div className="space-y-3">
+          {filteredLogs.map(log => {
+            const typeInfo = LOG_TYPES.find(t => t.value === log.log_type)
+            return (
+              <div
+                key={log.id}
+                className="card card-hover p-4 flex items-center justify-between bg-white/[0.02] border-white/[0.06]"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-2.5 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20">
+                    <Activity size={18} />
+                  </div>
 
-      {/* Log list */}
-      <div className="card">
-        <h2 className="text-sm font-semibold text-white mb-3">Recent Readings</h2>
-        {typeLogs.length === 0 ? (
-          <p className="text-stone-500 text-sm">No logs yet for this type.</p>
-        ) : (
-          <div className="divide-y divide-stone-800">
-            {[...typeLogs].reverse().map(l => (
-              <div key={l.id} className="flex items-center justify-between py-2.5">
-                <div>
-                  <span className="font-mono font-semibold text-white">{l.value}{l.value2 ? `/${l.value2}` : ''}</span>
-                  <span className="text-xs text-stone-400 ml-2">{l.unit}</span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono font-bold uppercase text-stone-400 tracking-wider">
+                        {typeInfo?.label || log.log_type.replace('_', ' ')}
+                      </span>
+                    </div>
+
+                    <div className="flex items-baseline gap-1.5 mt-0.5">
+                      <span className="text-lg font-bold font-mono text-white">
+                        {log.value}{log.value2 ? `/${log.value2}` : ''}
+                      </span>
+                      <span className="text-xs text-stone-400">{log.unit}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-stone-500">{format(new Date(l.logged_at), 'MMM d, yyyy HH:mm')}</span>
-                  <button onClick={() => handleDelete(l.id)} className="text-stone-600 hover:text-red-400 transition-colors">
-                    <Trash2 size={13} />
+
+                <div className="flex items-center gap-4">
+                  <div className="text-right text-xs font-mono text-stone-400">
+                    <div>{format(new Date(log.logged_at), 'MMM d, yyyy')}</div>
+                    <div className="text-[10px] text-stone-500">{format(new Date(log.logged_at), 'HH:mm')}</div>
+                  </div>
+
+                  <button
+                    onClick={() => handleDeleteLog(log.id)}
+                    className="text-stone-500 hover:text-rose-400 p-2 transition-colors rounded-lg hover:bg-rose-500/10"
+                    title="Delete Entry"
+                  >
+                    <Trash2 size={14} />
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

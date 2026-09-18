@@ -4,33 +4,59 @@
 
 @layer base {
   body {
-    @apply bg-stone-950 text-stone-100 font-sans antialiased;
+    @apply bg-[#0b0d14] text-stone-100 font-sans antialiased tracking-tight min-h-screen;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Custom subtle scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
   }
 }
 
 @layer components {
   .card {
-    @apply bg-stone-900 border border-stone-800 rounded-xl p-5;
+    @apply bg-[#121520]/80 backdrop-blur-sm border border-white/[0.07] rounded-xl p-5 shadow-sm transition-all duration-200;
+  }
+  .card-hover {
+    @apply hover:border-white/[0.15] hover:bg-[#151926];
   }
   .btn-primary {
-    @apply bg-brand-500 hover:bg-brand-600 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm;
+    @apply bg-brand-500 hover:bg-brand-600 active:bg-brand-700 text-white font-medium px-4 py-2 rounded-lg transition-all text-sm shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-white/[0.05] hover:bg-white/[0.1] active:bg-white/[0.15] text-stone-200 font-medium px-4 py-2 rounded-lg border border-white/[0.08] transition-all text-sm flex items-center justify-center gap-2;
   }
   .btn-ghost {
-    @apply text-stone-400 hover:text-white hover:bg-stone-800 px-3 py-2 rounded-lg transition-colors text-sm;
+    @apply text-stone-400 hover:text-stone-100 hover:bg-white/[0.06] px-3 py-2 rounded-lg transition-colors text-sm flex items-center justify-center gap-2;
   }
   .input {
-    @apply bg-stone-800 border border-stone-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent w-full;
+    @apply bg-stone-900/90 border border-white/[0.1] rounded-lg px-3.5 py-2.5 text-sm text-white placeholder:text-stone-500 focus:outline-none focus:ring-1 focus:ring-brand-500/80 focus:border-brand-500/80 w-full transition-all;
   }
   .label {
-    @apply text-xs font-medium text-stone-400 uppercase tracking-wide mb-1 block;
+    @apply text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1.5 block;
   }
   .risk-green {
-    @apply text-emerald-400 bg-emerald-400/10 border border-emerald-400/20;
+    @apply text-emerald-400 bg-emerald-500/10 border border-emerald-500/20;
   }
   .risk-yellow {
-    @apply text-amber-400 bg-amber-400/10 border border-amber-400/20;
+    @apply text-amber-400 bg-amber-500/10 border border-amber-500/20;
   }
   .risk-red {
-    @apply text-red-400 bg-red-400/10 border border-red-400/20;
+    @apply text-rose-400 bg-rose-500/10 border border-rose-500/20;
+  }
+  .risk-blue {
+    @apply text-sky-400 bg-sky-500/10 border border-sky-500/20;
   }
 }
